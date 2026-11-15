@@ -118,6 +118,8 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
 .memories:empty{display:none}
 .mem{border-left:2px solid var(--line);padding:2px 0 2px 22px;max-width:62ch}
 .mem p{margin:0 0 .8em;white-space:pre-line}
+.mph{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 .9em}
+.mph img{display:block;max-width:100%;max-height:260px;border-radius:4px;border:1px solid var(--line)}
 .mem .by{font-family:var(--display);font-size:20px;color:var(--accent);margin:0}
 .mem .rel{color:var(--muted);font-size:16px;margin:0}
 
@@ -224,7 +226,7 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
     var rows=parse(t);if(rows.length<2)return;
     var h=rows[0].map(function(x){return x.toLowerCase()});
     function col(re){for(var i=0;i<h.length;i++)if(re.test(h[i]))return i;return -1}
-    var iN=col(/имя/),iR=col(/кем/),iM=col(/воспоминани/),iS=col(/показать/);
+    var iN=col(/имя/),iR=col(/кем/),iM=col(/воспоминани/),iS=col(/показать/),iP=col(/фото/);
     if(iM<0||iS<0)return;
     rows.slice(1).forEach(function(r){
       if(!/^\s*(да|yes|y|1|x|\+)/i.test(r[iS]||""))return;
@@ -233,6 +235,12 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
       var p=document.createElement("p");p.textContent=m;d.appendChild(p);
       if(iN>=0&&r[iN]){var b=document.createElement("p");b.className="by";b.textContent=r[iN].trim();d.appendChild(b)}
       if(iR>=0&&r[iR]){var l=document.createElement("p");l.className="rel";l.textContent=r[iR].trim();d.appendChild(l)}
+      var ids=iP>=0?(r[iP]||"").match(/[-\w]{20,}/g)||[]:[];
+      if(ids.length){var g=document.createElement("div");g.className="mph";
+        ids.forEach(function(id){var a=document.createElement("a");a.href="https://drive.google.com/file/d/"+id+"/view";a.target="_blank";a.rel="noopener";
+          var im=document.createElement("img");im.loading="lazy";im.alt="Фото к воспоминанию";im.src="https://drive.google.com/thumbnail?id="+id+"&sz=w800";
+          im.onerror=function(){a.remove()};a.appendChild(im);g.appendChild(a)});
+        d.insertBefore(g,p.nextSibling)}
       box.appendChild(d)});
   }).catch(function(){});
 })();
