@@ -114,6 +114,13 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
 .lightbox button{background:none;border:1px solid #bbb;color:#eee}
 @media (max-width:680px){.steps li{grid-template-columns:1fr;gap:4px}.farewell{padding:22px 20px 4px}}
 .formlink{margin:24px 0 0}
+.memories{margin:40px 0 0;display:grid;gap:28px}
+.memories:empty{display:none}
+.mem{border-left:2px solid var(--line);padding:2px 0 2px 22px;max-width:62ch}
+.mem p{margin:0 0 .8em;white-space:pre-line}
+.mem .by{font-family:var(--display);font-size:20px;color:var(--accent);margin:0}
+.mem .rel{color:var(--muted);font-size:16px;margin:0}
+
 .btn{display:inline-block;font-size:17px;text-decoration:none;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:13px 28px}
 .btn:hover{filter:brightness(1.08)}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -166,6 +173,7 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
     <h2 id="book-h">Воспоминания</h2>
     <p class="lead">Если вы знали Деомида Анатольевича, напишите несколько слов: как вы познакомились, что запомнилось, за что вы благодарны. Ваше воспоминание получат его дети.</p>
     <p class="formlink"><a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSduIVfbEqMo_QiTB7wjHUQuDZnp9guilIZ1AbYlZ_SkdR7PPQ/viewform" target="_blank" rel="noopener">Оставить воспоминание</a></p>
+    <div id="memories" class="memories" aria-live="polite"></div>
   </section>
 
   <hr class="rule">
@@ -204,6 +212,29 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
     if(d.caption){var c=document.createElement("div");c.textContent=d.caption;cap.appendChild(c)}
     li.appendChild(cap);gallery.appendChild(li);
   });
+})();
+(function(){
+  var box=document.getElementById("memories");if(!box)return;
+  function parse(t){var r=[],row=[],f="",q=false,i,c;for(i=0;i<t.length;i++){c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===","){row.push(f);f=""}
+    else if(c==="\n"){row.push(f);r.push(row);row=[];f=""}else if(c!=="\r")f+=c}
+    if(f!==""||row.length){row.push(f);r.push(row)}return r}
+  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQTltx-YiLmClX45Y9v0mG16qtd8aBEBxZrlxutIX9maKN76ofHM6SAgsnKkCA7m4Y90lQn58mzQqzk/pub?gid=1412047296&single=true&output=csv").then(function(x){return x.text()}).then(function(t){
+    var rows=parse(t);if(rows.length<2)return;
+    var h=rows[0].map(function(x){return x.toLowerCase()});
+    function col(re){for(var i=0;i<h.length;i++)if(re.test(h[i]))return i;return -1}
+    var iN=col(/имя/),iR=col(/кем/),iM=col(/воспоминани/),iS=col(/показать/);
+    if(iM<0||iS<0)return;
+    rows.slice(1).forEach(function(r){
+      if(!/^\s*(да|yes|y|1|x|\+)/i.test(r[iS]||""))return;
+      var m=(r[iM]||"").trim();if(!m)return;
+      var d=document.createElement("article");d.className="mem";
+      var p=document.createElement("p");p.textContent=m;d.appendChild(p);
+      if(iN>=0&&r[iN]){var b=document.createElement("p");b.className="by";b.textContent=r[iN].trim();d.appendChild(b)}
+      if(iR>=0&&r[iR]){var l=document.createElement("p");l.className="rel";l.textContent=r[iR].trim();d.appendChild(l)}
+      box.appendChild(d)});
+  }).catch(function(){});
 })();
 </script>
 </body>
