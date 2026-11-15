@@ -113,9 +113,13 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
 .lightbox p{color:#eee;margin:0;text-align:center;max-width:60ch;font-size:16px}
 .lightbox button{background:none;border:1px solid #bbb;color:#eee}
 @media (max-width:680px){.steps li{grid-template-columns:1fr;gap:4px}.farewell{padding:22px 20px 4px}}
-.formwrap{margin:28px 0 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.formwrap iframe{display:block;width:100%;border:0;min-height:720px}
-.formlink a{color:var(--accent)}
+.formwrap{margin:28px 0 0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:28px;display:grid;gap:18px;justify-items:start}
+.formwrap p{margin:0;color:var(--muted);max-width:56ch}
+.btn{display:inline-block;font-size:17px;text-decoration:none;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:13px 28px}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#1a1218}}
+:root[data-theme="dark"] .btn{color:#1a1218}
 </style>
 </head>
 <body>
@@ -163,9 +167,9 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
     <h2 id="book-h">Воспоминания</h2>
     <p class="lead">Если вы знали Деомида Анатольевича, напишите несколько слов: как вы познакомились, что запомнилось, за что вы благодарны. Ваше воспоминание получат его дети.</p>
     <div class="formwrap">
-      <iframe title="Форма для воспоминаний о Деомиде Анатольевиче" src="https://docs.google.com/forms/d/e/1FAIpQLSduIVfbEqMo_QiTB7wjHUQuDZnp9guilIZ1AbYlZ_SkdR7PPQ/viewform?embedded=true" loading="lazy" width="100%" height="900" frameborder="0" marginheight="0" marginwidth="0">Загрузка…</iframe>
+      <p>Форма откроется в новом окне. Достаточно имени и нескольких тёплых слов.</p>
+      <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSduIVfbEqMo_QiTB7wjHUQuDZnp9guilIZ1AbYlZ_SkdR7PPQ/viewform" target="_blank" rel="noopener">Оставить воспоминание</a>
     </div>
-    <p class="lead formlink"><a href="https://docs.google.com/forms/d/e/1FAIpQLSduIVfbEqMo_QiTB7wjHUQuDZnp9guilIZ1AbYlZ_SkdR7PPQ/viewform" target="_blank" rel="noopener">Открыть форму в отдельном окне</a></p>
   </section>
 
   <hr class="rule">
