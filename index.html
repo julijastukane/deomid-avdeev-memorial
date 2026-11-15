@@ -157,64 +157,18 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
   <hr class="rule">
 
   <section aria-labelledby="book-h">
-    <h2 id="book-h">Книга воспоминаний</h2>
-    <p class="lead">Если вы знали Деомида Анатольевича, напишите несколько слов: как вы познакомились, что запомнилось, за что вы благодарны.</p>
-
-    <div id="notice" class="notice" hidden></div>
-
-    <form id="form" class="form" hidden>
-      <div class="row">
-        <label for="f-name">Ваше имя
-          <input id="f-name" maxlength="80" autocomplete="name" required>
-        </label>
-        <label for="f-rel">Кем вы ему приходились (по желанию)
-          <input id="f-rel" maxlength="80" placeholder="друг, коллега, сосед, родственник">
-        </label>
-      </div>
-      <label for="f-text">Ваше воспоминание
-        <textarea id="f-text" maxlength="3000" required></textarea>
-      </label>
-      <button type="submit" id="send" class="primary">Оставить воспоминание</button>
-      <p id="status" class="status" role="status"></p>
-    </form>
-
-    <ul id="list" class="list" aria-live="polite"></ul>
-    <p id="empty" class="empty" hidden>Пока здесь нет воспоминаний. Вы можете написать первое.</p>
+    <h2 id="book-h">Воспоминания</h2>
+    <p class="lead">Если вы знали Деомида Анатольевича, пожалуйста, поделитесь воспоминаниями о нём и фотографиями. Передайте их Юлии, Макару или Елене лично или любым удобным способом. Мы с благодарностью добавим их на эту страницу.</p>
   </section>
 
   <hr class="rule">
 
   <section aria-labelledby="photos-h">
     <h2 id="photos-h">Фотографии</h2>
-    <p class="lead">Поделитесь фотографиями, где Деомид Анатольевич с вами или с другими людьми. Пожалуйста, укажите всех, кто есть на снимке.</p>
-
-    <div id="pnotice" class="notice" hidden></div>
-
-    <form id="pform" class="form" hidden>
-      <label for="p-file">Фотография
-        <input id="p-file" type="file" accept="image/*" required>
-      </label>
-      <img id="p-prev" class="preview" alt="Предпросмотр выбранной фотографии" hidden>
-      <div>
-        <label for="p-person">Кто на фотографии (укажите всех, по одному имени)
-          <span class="addrow"><input id="p-person" maxlength="80" placeholder="Например: Деомид Анатольевич"><button type="button" id="p-add">Добавить</button></span>
-        </label>
-        <div id="p-people" class="people" aria-live="polite"></div>
-      </div>
-      <div class="row">
-        <label for="p-name">Ваше имя
-          <input id="p-name" maxlength="80" autocomplete="name" required>
-        </label>
-        <label for="p-cap">Подпись (по желанию)
-          <input id="p-cap" maxlength="200" placeholder="Где и когда сделан снимок">
-        </label>
-      </div>
-      <button type="submit" id="p-send" class="primary">Добавить фотографию</button>
-      <p id="p-status" class="status" role="status"></p>
-    </form>
+    <p class="lead">Фотографии из семейного архива.</p>
 
     <ul id="gallery" class="gallery"></ul>
-    <p id="p-empty" class="empty" hidden>Пока нет фотографий.</p>
+    
   </section>
 
   <footer>
@@ -226,201 +180,23 @@ footer .names{font-family:var(--display);font-size:24px;color:var(--ink);margin:
 
 <script>
 (function(){
-  var $=function(id){return document.getElementById(id)};
-  var listEl=$("list"),emptyEl=$("empty"),form=$("form"),notice=$("notice"),statusEl=$("status"),sendBtn=$("send");
-  var db=null,uid=null,canMod=false,myEntries=[],docs=[];
-
-  function setStatus(t,err){statusEl.textContent=t||"";statusEl.className="status"+(err?" err":"")}
-  function showNotice(t){notice.textContent=t;notice.hidden=false}
-
-  function fmt(ts){
-    try{return new Date(ts).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})}catch(e){return ""}
-  }
-
-  function render(){
-    var all=[];
-    docs.forEach(function(d){
-      var e=(d.data()||{}).entries;
-      if(Array.isArray(e)){e.forEach(function(x){
-        if(x&&typeof x.text==="string"){all.push({owner:d.id,e:x})}
-      })}
-    });
-    all.sort(function(a,b){return (b.e.ts||0)-(a.e.ts||0)});
-    listEl.textContent="";
-    emptyEl.hidden=all.length>0;
-    all.forEach(function(it){
-      var li=document.createElement("li");li.className="memory";
-      var p=document.createElement("p");p.textContent=it.e.text;li.appendChild(p);
-      var who=document.createElement("div");who.className="who";
-      var n=document.createElement("strong");n.textContent=String(it.e.name||"Без имени");who.appendChild(n);
-      if(it.e.relation){var r=document.createElement("span");r.textContent=String(it.e.relation);who.appendChild(r)}
-      var dt=document.createElement("span");dt.textContent=fmt(it.e.ts);who.appendChild(dt);
-      if(canMod||(uid&&it.owner===uid)){
-        var b=document.createElement("button");b.type="button";b.className="link";b.textContent="Удалить";
-        b.addEventListener("click",function(){removeEntry(it.owner,it.e.id,b)});
-        who.appendChild(b);
-      }
-      li.appendChild(who);listEl.appendChild(li);
-    });
-  }
-
-  function removeEntry(owner,id,btn){
-    if(!db)return;
-    if(!btn.dataset.sure){btn.dataset.sure="1";btn.textContent="Нажмите ещё раз, чтобы удалить";return}
-    var d=docs.filter(function(x){return x.id===owner})[0];
-    var cur=d&&d.data()&&Array.isArray(d.data().entries)?d.data().entries:[];
-    var next=cur.filter(function(x){return x.id!==id});
-    btn.disabled=true;
-    var ref=db.doc("memories/"+owner);
-    var op=next.length?ref.set({entries:next}):ref.delete();
-    op.catch(function(){btn.disabled=false;btn.textContent="Не удалось удалить"});
-  }
-
-  form.addEventListener("submit",function(ev){
-    ev.preventDefault();
-    if(!db||!uid)return;
-    var name=$("f-name").value.trim(),rel=$("f-rel").value.trim(),text=$("f-text").value.trim();
-    if(!name||!text)return;
-    var entry={id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,relation:rel,text:text,ts:Date.now()};
-    var mine=(docs.filter(function(x){return x.id===uid})[0]);
-    var cur=mine&&mine.data()&&Array.isArray(mine.data().entries)?mine.data().entries.slice():[];
-    cur.push(entry);
-    sendBtn.disabled=true;setStatus("Сохраняем…");
-    db.doc("memories/"+uid).set({entries:cur}).then(function(){
-      $("f-text").value="";$("f-rel").value="";
-      setStatus("Спасибо. Ваше воспоминание добавлено.");
-    }).catch(function(e){
-      if(e&&e.code==="invalid_argument"){setStatus("Не удалось сохранить. Возможно, у вас есть доступ только для чтения. Попросите Юлию открыть вам доступ с правом участника.",true)}
-      else{setStatus("Не удалось сохранить. Попробуйте ещё раз чуть позже.",true)}
-    }).then(function(){sendBtn.disabled=false});
-  });
-
-  /* ---------- photos ---------- */
-  var pform=$("pform"),pnotice=$("pnotice"),pstatus=$("p-status"),gallery=$("gallery"),pempty=$("p-empty"),pprev=$("p-prev"),peopleEl=$("p-people");
   var ARCHIVE=[{"src": "photos/p01.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июнь 2016. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p02.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Август 2017. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p03.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2021. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p04.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2021. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p05.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2021. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p06.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2022. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p07.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Август 2022. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p08.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2023", "archive": true}, {"src": "photos/p09.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2023", "archive": true}, {"src": "photos/p10.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2024. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p11.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2024", "archive": true}, {"src": "photos/p12.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2024", "archive": true}, {"src": "photos/p13.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Сентябрь 2024", "archive": true}, {"src": "photos/p14.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Сентябрь 2024. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p15.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Декабрь 2024. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p16.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Декабрь 2024. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p17.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Июль 2025. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p18.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Август 2025. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}, {"src": "photos/p19.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Август 2026", "archive": true}, {"src": "photos/p20.jpg", "people": ["Деомид Анатольевич", "Юлия"], "caption": "Август 2026. На фото есть и другие люди, их имена мы добавим позже.", "archive": true}];
-  var people=[],photoDocs=[],imgData=null;
-  function pStatus(t,err){pstatus.textContent=t||"";pstatus.className="status"+(err?" err":"")}
-  function renderPeople(){
-    peopleEl.textContent="";
-    people.forEach(function(n,i){
-      var c=document.createElement("span");c.className="chip";
-      var s=document.createElement("span");s.textContent=n;c.appendChild(s);
-      var b=document.createElement("button");b.type="button";b.textContent="\u00d7";b.setAttribute("aria-label","Убрать "+n);
-      b.addEventListener("click",function(){people.splice(i,1);renderPeople()});
-      c.appendChild(b);peopleEl.appendChild(c);
-    });
-  }
-  function addPerson(){
-    var v=$("p-person").value.trim();
-    if(!v)return;
-    if(people.indexOf(v)<0&&people.length<30)people.push(v);
-    $("p-person").value="";renderPeople();
-  }
-  $("p-add").addEventListener("click",addPerson);
-  $("p-person").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===","){e.preventDefault();addPerson()}});
-
-  function shrink(file){
-    return new Promise(function(res,rej){
-      var url=URL.createObjectURL(file),im=new Image();
-      im.onload=function(){
-        var max=1100,sc=Math.min(1,max/Math.max(im.width,im.height));
-        var w=Math.round(im.width*sc),h=Math.round(im.height*sc);
-        var cv=document.createElement("canvas");cv.width=w;cv.height=h;
-        cv.getContext("2d").drawImage(im,0,0,w,h);URL.revokeObjectURL(url);
-        var q=0.82,d=cv.toDataURL("image/jpeg",q);
-        while(d.length>240000&&q>0.4){q-=0.08;d=cv.toDataURL("image/jpeg",q)}
-        if(d.length>240000){
-          var k=0.8;while(d.length>240000&&k>0.4){var c2=document.createElement("canvas");c2.width=Math.round(w*k);c2.height=Math.round(h*k);c2.getContext("2d").drawImage(cv,0,0,c2.width,c2.height);d=c2.toDataURL("image/jpeg",0.7);k-=0.15}
-        }
-        d.length>245000?rej(new Error("big")):res(d);
-      };
-      im.onerror=function(){URL.revokeObjectURL(url);rej(new Error("bad"))};
-      im.src=url;
-    });
-  }
-  $("p-file").addEventListener("change",function(){
-    imgData=null;pprev.hidden=true;pStatus("");
-    var f=this.files&&this.files[0];if(!f)return;
-    pStatus("Готовим фотографию…");
-    shrink(f).then(function(d){imgData=d;pprev.src=d;pprev.hidden=false;pStatus("")})
-      .catch(function(){pStatus("Не удалось открыть этот файл. Выберите фотографию в формате JPG или PNG.",true)});
-  });
-
-  pform.addEventListener("submit",function(ev){
-    ev.preventDefault();
-    if(!db||!uid)return;
-    addPerson();
-    var name=$("p-name").value.trim();
-    if(!imgData){pStatus("Сначала выберите фотографию.",true);return}
-    if(!people.length){pStatus("Укажите хотя бы одного человека на фотографии.",true);return}
-    if(!name){pStatus("Укажите ваше имя.",true);return}
-    var doc={src:imgData,people:people.slice(),caption:$("p-cap").value.trim(),by:name,owner:uid,ts:Date.now()};
-    $("p-send").disabled=true;pStatus("Сохраняем…");
-    db.collection("photos").add(doc).then(function(){
-      imgData=null;pprev.hidden=true;$("p-file").value="";$("p-cap").value="";people=[];renderPeople();
-      pStatus("Спасибо. Фотография добавлена.");
-    }).catch(function(e){
-      if(e&&e.code==="quota_exceeded"){pStatus("Достигнут предел хранилища. Сообщите об этом Юлии.",true)}
-      else if(e&&e.code==="invalid_argument"){pStatus("Не удалось сохранить. Возможно, у вас доступ только для чтения.",true)}
-      else{pStatus("Не удалось сохранить. Попробуйте ещё раз чуть позже.",true)}
-    }).then(function(){$("p-send").disabled=false});
-  });
-
-  var lb=$("lb");
-  function openLb(d){$("lb-img").src=d.src;$("lb-cap").textContent="На фото: "+(d.people||[]).join(", ")+(d.caption?". "+d.caption:"");lb.hidden=false;$("lb-close").focus()}
-  $("lb-close").addEventListener("click",function(){lb.hidden=true});
+  var gallery=document.getElementById("gallery"),lb=document.getElementById("lb");
+  function openLb(d){document.getElementById("lb-img").src=d.src;document.getElementById("lb-cap").textContent="На фото: "+d.people.join(", ")+(d.caption?". "+d.caption:"");lb.hidden=false;document.getElementById("lb-close").focus()}
+  document.getElementById("lb-close").addEventListener("click",function(){lb.hidden=true});
   lb.addEventListener("click",function(e){if(e.target===lb)lb.hidden=true});
   document.addEventListener("keydown",function(e){if(e.key==="Escape")lb.hidden=true});
-
-  function renderPhotos(){
-    var all=photoDocs.map(function(d){return {id:d.id,d:d.data()||{}}}).filter(function(x){return typeof x.d.src==="string"&&x.d.src.indexOf("data:image/")===0});
-    all.sort(function(a,b){return (b.d.ts||0)-(a.d.ts||0)});
-    var arch=ARCHIVE.map(function(a,i){return {id:"a"+i,d:a}});
-    all=arch.concat(all);
-    gallery.textContent="";pempty.hidden=all.length>0;
-    all.forEach(function(it){
-      var li=document.createElement("li");li.className="shot";
-      var ob=document.createElement("button");ob.type="button";ob.className="open";
-      var names=Array.isArray(it.d.people)?it.d.people.map(String):[];
-      ob.setAttribute("aria-label","Открыть фотографию: "+names.join(", "));
-      var im=document.createElement("img");im.src=it.d.src;im.alt="Фотография. На ней: "+names.join(", ");im.loading="lazy";
-      ob.appendChild(im);ob.addEventListener("click",function(){openLb(it.d)});li.appendChild(ob);
-      var cap=document.createElement("div");cap.className="cap";
-      var on=document.createElement("div");on.className="on";on.textContent="На фото: "+names.join(", ");cap.appendChild(on);
-      if(it.d.caption){var c=document.createElement("div");c.textContent=String(it.d.caption);cap.appendChild(c)}
-      var by=document.createElement("div");by.className="by";by.textContent=it.d.archive?"Из семейного архива":"Добавил(а): "+String(it.d.by||"")+(it.d.ts?", "+fmt(it.d.ts):"");cap.appendChild(by);
-      if(!it.d.archive&&(canMod||(uid&&it.d.owner===uid))){
-        var b=document.createElement("button");b.type="button";b.className="link";b.textContent="Удалить";
-        b.addEventListener("click",function(){
-          if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Нажмите ещё раз, чтобы удалить";return}
-          b.disabled=true;db.doc("photos/"+it.id).delete().catch(function(){b.disabled=false;b.textContent="Не удалось удалить"});
-        });
-        cap.appendChild(b);
-      }
-      li.appendChild(cap);gallery.appendChild(li);
-    });
-  }
-
-  renderPhotos();
-  function start(){
-    var timer=setTimeout(function(){showNotice("Воспоминания пока не загрузились. Проверьте соединение и подождите немного.")},10000);
-    Promise.all([claude.use("db"),claude.use("user")]).then(function(r){
-      db=r[0];var user=r[1];
-      if(!db){clearTimeout(timer);showNotice("Чтобы читать и оставлять воспоминания, откройте эту страницу, войдя в свой аккаунт Claude.");pnotice.textContent="Чтобы смотреть и добавлять фотографии, откройте эту страницу, войдя в свой аккаунт Claude.";pnotice.hidden=false;emptyEl.hidden=true;return}
-      return Promise.all([user?user.id():null,user?user.canEdit():false,user?user.can("data.write"):null]).then(function(v){
-        uid=v[0];canMod=!!v[1];
-        var canWrite=v[2];
-        if(uid&&canWrite!==false){form.hidden=false;pform.hidden=false}
-        else if(uid){showNotice("Вы можете читать воспоминания. Чтобы написать своё, попросите Юлию открыть вам доступ с правом участника.");pnotice.textContent="Вы можете смотреть фотографии. Чтобы добавить свою, попросите Юлию открыть вам доступ с правом участника.";pnotice.hidden=false}
-        db.collection("memories").onSnapshot(function(snap){
-          if(!snap.metadata.fromCache)clearTimeout(timer);
-          docs=snap.docs;render();
-        },function(){clearTimeout(timer);showNotice("Не удалось загрузить воспоминания.")});
-        db.collection("photos").onSnapshot(function(snap){photoDocs=snap.docs;renderPhotos()},function(){pnotice.textContent="Не удалось загрузить фотографии.";pnotice.hidden=false});
-      });
-    }).catch(function(){clearTimeout(timer);showNotice("Не удалось загрузить воспоминания.")});
-  }
-  if(window.claude&&window.claude.use){start()}else{emptyEl.hidden=true;showNotice("Откройте эту страницу в Claude, чтобы читать и оставлять воспоминания и фотографии.")}
+  ARCHIVE.forEach(function(d){
+    var li=document.createElement("li");li.className="shot";
+    var ob=document.createElement("button");ob.type="button";ob.className="open";
+    ob.setAttribute("aria-label","Открыть фотографию: "+d.people.join(", "));
+    var im=document.createElement("img");im.src=d.src;im.alt="Фотография. На ней: "+d.people.join(", ");im.loading="lazy";
+    ob.appendChild(im);ob.addEventListener("click",function(){openLb(d)});li.appendChild(ob);
+    var cap=document.createElement("div");cap.className="cap";
+    var on=document.createElement("div");on.className="on";on.textContent="На фото: "+d.people.join(", ");cap.appendChild(on);
+    if(d.caption){var c=document.createElement("div");c.textContent=d.caption;cap.appendChild(c)}
+    li.appendChild(cap);gallery.appendChild(li);
+  });
 })();
 </script>
 </body>
